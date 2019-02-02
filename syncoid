@@ -75,6 +75,8 @@ my $mbufferoptions = "-q -s 128k -m $mbuffer_size 2>/dev/null";
 # currently using ls to check for file existence because we aren't depending on perl
 # being present on remote machines.
 my $lscmd = '/bin/ls';
+my $cutcmd = '/usr/bin/cut';
+my $cksumcmd = '/usr/bin/cksum';
 
 if (length $args{'sshcipher'}) {
 	$args{'sshcipher'} = "-c $args{'sshcipher'}";
@@ -682,11 +684,16 @@ sub syncdataset {
 		if (defined $args{'create-bookmark'}) {
 			my $bookmarkcmd;
 			my $bookmarksuffix;
+			my $bookmarksuffixcmd;
 			if ($sourcehost ne '') {
-				$bookmarksuffix = "$sshcmd $sourcehost " . escapeshellparam("$sourcesudocmd $zfscmd get guid -o value -H $sourcefsescaped\@$newsyncsnapescaped | cksum | cut -d' ' -f1)"; #I don't know how those quotes should be properly escaped in perl
+				#this is ugly and should be done inside a single ssh session instead of opening the ssh pipe twice
+				$bookmarksuffixcmd = "$sshcmd $sourcehost " . escapeshellparam("$sourcesudocmd $zfscmd get guid -o value -H $sourcefsescaped\@$newsyncsnapescaped") . " | $cksumcmd | $cutcmd -d' ' -f1";
+				#next one should be done with "open" like elsewhere but I don't know that much perl yet, this is my first editing of perl code
+				$bookmarksuffix = `$bookmarksuffixcmd`;
 				$bookmarkcmd = "$sshcmd $sourcehost " . escapeshellparam("$sourcesudocmd $zfscmd bookmark $sourcefsescaped\@$newsyncsnapescaped $sourcefsescaped\#$newsyncsnapescaped-$bookmarksuffix");
 			} else {
-				$bookmarksuffix = "$sourcesudocmd $zfscmd get guid -o value -H $sourcefsescaped\@$newsyncsnapescaped | cksum | cut -d' ' -f1";
+				$bookmarksuffixcmd = "$sourcesudocmd $zfscmd get guid -o value -H $sourcefsescaped\@$newsyncsnapescaped" . " | cksum | cut -d' ' -f1";
+				$bookmarksuffix = `$bookmarksuffixcmd`;
 				$bookmarkcmd = "$sourcesudocmd $zfscmd bookmark $sourcefsescaped\@$newsyncsnapescaped $sourcefsescaped\#$newsyncsnapescaped-$bookmarksuffix";
 			}
 			if ($debug) { print "DEBUG: $bookmarkcmd\n"; }
