@@ -681,16 +681,18 @@ sub syncdataset {
 	if (defined $args{'no-sync-snap'}) {
 		if (defined $args{'create-bookmark'}) {
 			my $bookmarkcmd;
+			my $bookmarksuffix;
 			if ($sourcehost ne '') {
-				$bookmarkcmd = "$sshcmd $sourcehost " . escapeshellparam("$sourcesudocmd $zfscmd bookmark $sourcefsescaped\@$newsyncsnapescaped $sourcefsescaped\#$newsyncsnapescaped");
+				$bookmarksuffix = "$sshcmd $sourcehost " . escapeshellparam("$sourcesudocmd $zfscmd get guid -o value -H $sourcefsescaped\@$newsyncsnapescaped | cksum | cut -d' ' -f1)"; #I don't know how those quotes should be properly escaped in perl
+				$bookmarkcmd = "$sshcmd $sourcehost " . escapeshellparam("$sourcesudocmd $zfscmd bookmark $sourcefsescaped\@$newsyncsnapescaped $sourcefsescaped\#$newsyncsnapescaped-$bookmarksuffix");
 			} else {
-				$bookmarkcmd = "$sourcesudocmd $zfscmd bookmark $sourcefsescaped\@$newsyncsnapescaped $sourcefsescaped\#$newsyncsnapescaped";
+				$bookmarksuffix = "$sourcesudocmd $zfscmd get guid -o value -H $sourcefsescaped\@$newsyncsnapescaped | cksum | cut -d' ' -f1";
+				$bookmarkcmd = "$sourcesudocmd $zfscmd bookmark $sourcefsescaped\@$newsyncsnapescaped $sourcefsescaped\#$newsyncsnapescaped-$bookmarksuffix";
 			}
 			if ($debug) { print "DEBUG: $bookmarkcmd\n"; }
 			system($bookmarkcmd) == 0 or do {
-				warn "CRITICAL ERROR: $bookmarkcmd failed: $?";
-				if ($exitcode < 2) { $exitcode = 2; }
-				return 0;
+				if (!$quiet) { print "INFO: bookmark creation failed, bookmark already exists or bookmark feature is not enabled\n"; }
+				if ($debug) { print "DEBUG: $bookmarkcmd failed: $?"; }
 			};
 		}
 	} else {
