@@ -598,6 +598,7 @@ sub syncdataset {
 		if ($matchingsnap eq $newsyncsnap) {
 			# barf some text but don't touch the filesystem
 			if (!$quiet) { print "INFO: no snapshots on source newer than $newsyncsnap on target. Nothing to do, not syncing.\n"; }
+			return 0;
 		} else {
 			my $matchingsnapescaped = escapeshellparam($matchingsnap);
 			# rollback target to matchingsnap
@@ -711,9 +712,23 @@ sub syncdataset {
 			}
 			if ($debug) { print "DEBUG: $bookmarkcmd\n"; }
 			system($bookmarkcmd) == 0 or do {
-				warn "CRITICAL ERROR: $bookmarkcmd failed: $?";
-				if ($exitcode < 2) { $exitcode = 2; }
-				return 0;
+				# fallback: assume nameing conflict and try again with guid based suffix
+				my $guid = $snaps{'source'}{$newsyncsnap}{'guid'};
+				$guid = substr($guid, 0, 6);
+
+				if (!$quiet) { print "INFO: bookmark creation failed, retrying with guid based suffix ($guid)...\n"; }
+
+				if ($sourcehost ne '') {
+					$bookmarkcmd = "$sshcmd $sourcehost " . escapeshellparam("$sourcesudocmd $zfscmd bookmark $sourcefsescaped\@$newsyncsnapescaped $sourcefsescaped\#$newsyncsnapescaped$guid");
+				} else {
+					$bookmarkcmd = "$sourcesudocmd $zfscmd bookmark $sourcefsescaped\@$newsyncsnapescaped $sourcefsescaped\#$newsyncsnapescaped$guid";
+				}
+				if ($debug) { print "DEBUG: $bookmarkcmd\n"; }
+				system($bookmarkcmd) == 0 or do {
+					warn "CRITICAL ERROR: $bookmarkcmd failed: $?";
+					if ($exitcode < 2) { $exitcode = 2; }
+					return 0;
+				}
 			};
 		}
 	} else {
