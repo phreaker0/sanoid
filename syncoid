@@ -31,11 +31,21 @@ my %compressargs = %{compressargset($args{'compress'} || 'default')}; # Can't be
 my @sendoptions = ();
 if (length $args{'sendoptions'}) {
 	@sendoptions = parsespecialoptions($args{'sendoptions'});
+	if (! defined($sendoptions[0])) {
+		warn "invalid send options!";
+		pod2usage(2);
+		exit 127;
+	}
 }
 
 my @recvoptions = ();
 if (length $args{'recvoptions'}) {
 	@recvoptions = parsespecialoptions($args{'recvoptions'});
+	if (! defined($recvoptions[0])) {
+		warn "invalid receive options!";
+		pod2usage(2);
+		exit 127;
+	}
 }
 
 
@@ -1535,8 +1545,6 @@ sub getreceivetoken() {
 
 sub parsespecialoptions {
 	my ($line) = @_;
-
-	print("$line\n");
 
 	my @options = ();
 
