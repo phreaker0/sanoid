@@ -139,6 +139,12 @@ if (!defined $args{'recursive'}) {
 	if ($debug) { print "DEBUG: recursive sync of $sourcefs.\n"; }
 	my @datasets = getchilddatasets($sourcehost, $sourcefs, $sourceisroot);
 
+	if (!@datasets) {
+		warn "CRITICAL ERROR: no datasets found";
+		@datasets = ();
+		$exitcode = 2;
+	}
+
 	my @deferred;
 
 	foreach my $datasetProperties(@datasets) {
@@ -276,6 +282,12 @@ sub syncdataset {
 	if ($debug) { print "DEBUG: syncing source $sourcefs to target $targetfs.\n"; }
 
 	my $sync = getzfsvalue($sourcehost,$sourcefs,$sourceisroot,'syncoid:sync');
+
+	if (!defined $sync) {
+		# zfs already printed the corresponding error
+		if ($exitcode < 2) { $exitcode = 2; }
+		return 0;
+	}
 
 	if ($sync eq 'true' || $sync eq '-' || $sync eq '') {
 		# empty is handled the same as unset (aka: '-')
@@ -1063,6 +1075,11 @@ sub getzfsvalue {
 	open FH, "$rhost $mysudocmd $zfscmd get -H $property $fsescaped |";
 	my $value = <FH>;
 	close FH;
+
+	if (!defined $value) {
+		return undef;
+	}
+
 	my @values = split(/\t/,$value);
 	$value = $values[2];
 	return $value;
@@ -1567,7 +1584,7 @@ sub getreceivetoken() {
 	my ($rhost,$fs,$isroot) = @_;
 	my $token = getzfsvalue($rhost,$fs,$isroot,"receive_resume_token");
 
-	if ($token ne '-' && $token ne '') {
+	if (defined $token && $token ne '-' && $token ne '') {
 		return $token;
 	}
 
@@ -1662,8 +1679,8 @@ Options:
   --identifier=EXTRA    Extra identifier which is included in the snapshot name. Can be used for replicating to multiple targets.
   --recursive|r         Also transfers child datasets
   --skip-parent         Skips syncing of the parent dataset. Does nothing without '--recursive' option.
-  --source-bwlimit=<limit k|m|g|t>  Bandwidth limit on the source transfer
-  --target-bwlimit=<limit k|m|g|t>  Bandwidth limit on the target transfer
+  --source-bwlimit=<limit k|m|g|t>  Bandwidth limit in bytes/kbytes/etc per second on the source transfer
+  --target-bwlimit=<limit k|m|g|t>  Bandwidth limit in bytes/kbytes/etc per second on the target transfer
   --mbuffer-size=VALUE  Specify the mbuffer size (default: 16M), please refer to mbuffer(1) manual page.
   --no-stream           Replicates using newest snapshot instead of intermediates
   --no-sync-snap        Does not create new snapshot, only transfers existing
