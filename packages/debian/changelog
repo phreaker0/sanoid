@@ -1,8 +1,14 @@
-sanoid (2.0.3-SNAPSHOT) unstable; urgency=medium
+sanoid (2.1.0-SNAPSHOT) unstable; urgency=medium
 
 	todo
 
- -- Christoph Klaffl <christoph@phreaker.eu>  Wed, 25 Sep 2019 22:36:00 +0200
+ -- Christoph Klaffl <christoph@phreaker.eu>  Mon, 11 Nov 2019 21:31:00 +0100
+
+sanoid (2.0.3) unstable; urgency=medium
+
+  [sanoid]    reverted DST handling and improved it as quickfix (@phreaker0)
+
+ -- Jim Salter <github@jrs-s.net>  Wed, 02 Oct 2019 17:00:00 +0100
 
 sanoid (2.0.2) unstable; urgency=medium
 
