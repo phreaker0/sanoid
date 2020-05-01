@@ -26,7 +26,7 @@ GetOptions(\%args, "no-command-checks", "monitor-version", "compress=s", "dumpsn
                    "debug", "quiet", "no-stream", "no-sync-snap", "no-resume", "exclude=s@", "skip-parent", "identifier=s",
                    "no-clone-handling", "no-privilege-elevation", "force-delete", "no-clone-rollback", "no-rollback",
                    "create-bookmark", "preserve-recordsize", "pv-options=s" => \$pvoptions, "insecure-direct-connection=s",
-                   "mbuffer-size=s" => \$mbuffer_size) or pod2usage(2);
+                   "mbuffer-size=s" => \$mbuffer_size, "keep-sync-snap") or pod2usage(2);
 
 my %compressargs = %{compressargset($args{'compress'} || 'default')}; # Can't be done with GetOptions arg, as default still needs to be set
 
@@ -884,9 +884,11 @@ sub syncdataset {
 			};
 		}
 	} else {
-		# prune obsolete sync snaps on source and target (only if this run created ones).
-		pruneoldsyncsnaps($sourcehost,$sourcefs,$newsyncsnap,$sourceisroot,keys %{ $snaps{'source'}});
-		pruneoldsyncsnaps($targethost,$targetfs,$newsyncsnap,$targetisroot,keys %{ $snaps{'target'}});
+		if (!defined $args{'keep-sync-snap'}) {
+			# prune obsolete sync snaps on source and target (only if this run created ones).
+			pruneoldsyncsnaps($sourcehost,$sourcefs,$newsyncsnap,$sourceisroot,keys %{ $snaps{'source'}});
+			pruneoldsyncsnaps($targethost,$targetfs,$newsyncsnap,$targetisroot,keys %{ $snaps{'target'}});
+		}
 	}
 
 } # end syncdataset()
